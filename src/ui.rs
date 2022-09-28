@@ -1,10 +1,15 @@
 use std::io::{self, Stdout};
 
-use crossterm::{terminal::{enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, SetSize}, execute};
-use tui::{Terminal, backend::CrosstermBackend};
-use tui::layout::{Layout, Direction, Constraint, Rect, Alignment};
-use tui::widgets::{Paragraph, Cell, Table, Row};
-use tui::style::{Color, Style, Modifier};
+use crossterm::{
+    execute,
+    terminal::{
+        disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen, SetSize,
+    },
+};
+use tui::layout::{Alignment, Constraint, Direction, Layout, Rect};
+use tui::style::{Color, Modifier, Style};
+use tui::widgets::{Cell, Paragraph, Row, Table};
+use tui::{backend::CrosstermBackend, Terminal};
 
 pub struct Tui {
     terminal: Terminal<CrosstermBackend<Stdout>>,
@@ -21,13 +26,17 @@ pub struct Tui {
 }
 
 fn get_cell_color(row: usize, col: usize) -> Color {
-    if (row + col) % 2 == 0 { Color::Rgb(65, 70, 94) } else { Color::Rgb(129, 138, 184) }
+    if (row + col) % 2 == 0 {
+        Color::Rgb(172, 125, 88)
+    } else {
+        Color::Rgb(238, 211, 172)
+    }
 }
 
 fn get_player_color(str: &char) -> Color {
     match str {
-        'r' | 'n' | 'b' | 'q' | 'k' | 'p'  => { Color::Rgb(0, 0, 1) }
-        _ => { Color::White }
+        'r' | 'n' | 'b' | 'q' | 'k' | 'p' => Color::Rgb(0, 0, 1),
+        _ => Color::White,
     }
 }
 
@@ -36,10 +45,10 @@ pub fn convert_chr_to_piece(chr: &char) -> String {
         'r' | 'R' => " ♜ ".to_string(),
         'n' | 'N' => " ♞ ".to_string(),
         'b' | 'B' => " ♝ ".to_string(),
-        'q' | 'Q' => " ♛ ".to_string(), 
+        'q' | 'Q' => " ♛ ".to_string(),
         'k' | 'K' => " ♚ ".to_string(),
         'p' | 'P' => " ♟ ".to_string(),
-        _ => " ".to_string()
+        _ => " ".to_string(),
     }
 }
 
@@ -55,19 +64,25 @@ pub fn generate_board(fen: &str) -> Vec<Row> {
         let mut col = 0;
         let mut num_empty = 0;
         while col < 8 {
-            if num_empty > 0 { 
-                row_state.push(get_cell("".to_string(), get_cell_color(row, col), Color::White));
+            if num_empty > 0 {
+                row_state.push(get_cell(
+                    "".to_string(),
+                    get_cell_color(row, col),
+                    Color::White,
+                ));
                 num_empty -= 1;
             } else {
                 let chr_option = it.next();
-                if chr_option.is_none() { break; }
+                if chr_option.is_none() {
+                    break;
+                }
                 let chr = chr_option.unwrap();
 
                 if chr.is_ascii_digit() {
                     num_empty = chr.to_string().parse().unwrap();
                     continue;
                 }
-                
+
                 let piece = convert_chr_to_piece(&chr);
                 let piece_color = get_player_color(&chr);
                 row_state.push(get_cell(piece, get_cell_color(row, col), piece_color));
@@ -83,33 +98,48 @@ pub fn generate_board(fen: &str) -> Vec<Row> {
 }
 
 pub fn get_cell(content: String, cell_color: Color, piece_color: Color) -> Cell<'static> {
-    Cell::from(content).style(Style::default().bg(cell_color).fg(piece_color).add_modifier(Modifier::BOLD))
+    Cell::from(content).style(
+        Style::default()
+            .bg(cell_color)
+            .fg(piece_color)
+            .add_modifier(Modifier::BOLD),
+    )
 }
 
 impl Tui {
     pub fn new() -> Tui {
-        enable_raw_mode();
+        enable_raw_mode().unwrap();
         let mut stdout = io::stdout();
-        execute!(stdout, EnterAlternateScreen);
+        execute!(stdout, EnterAlternateScreen).unwrap();
         let backend = CrosstermBackend::new(stdout);
         let mut terminal = Terminal::new(backend).unwrap();
-        
+
         let frame_size = terminal.get_frame().size();
 
         let drawable_content = Layout::default()
             .direction(Direction::Horizontal)
-            .constraints([Constraint::Length(2), Constraint::Length(40), Constraint::Percentage(100)])
+            .constraints([
+                Constraint::Length(2),
+                Constraint::Length(40),
+                Constraint::Percentage(100),
+            ])
             .split(frame_size)[1];
 
         let main_layout = Layout::default()
             .direction(Direction::Vertical)
-            .constraints([Constraint::Min(1), Constraint::Length(1), Constraint::Min(18), Constraint::Length(1), Constraint::Min(1)])
+            .constraints([
+                Constraint::Min(1),
+                Constraint::Length(1),
+                Constraint::Min(18),
+                Constraint::Length(1),
+                Constraint::Min(1),
+            ])
             .split(drawable_content);
 
         let player_info_layout = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([Constraint::Length(5), Constraint::Length(5)]);
-            
+
         let white_info_block = player_info_layout.split(main_layout[0]);
         let black_info_block = player_info_layout.split(main_layout[4]);
 
@@ -128,25 +158,43 @@ impl Tui {
         }
     }
 
-    #[allow(unused)]
     pub fn render(&mut self) {
         let board_state = Self::generate_board(&self.fen);
-        
+
         self.terminal.draw(|f| {
             let table = Table::new(board_state)
-            .style(Style::default().fg(Color::White))
-            .header(Row::new(vec!["", "A", "B", "C", "D", "E", "F", "G", "H"]).bottom_margin(1))
-            .column_spacing(0)
-            .widths(&[
-                Constraint::Length(4), Constraint::Length(4), Constraint::Length(4), Constraint::Length(4),
-                Constraint::Length(4), Constraint::Length(4), Constraint::Length(4), Constraint::Length(4), Constraint::Length(4),
-            ]);
+                .style(Style::default().fg(Color::White))
+                .header(Row::new(vec!["", "A", "B", "C", "D", "E", "F", "G", "H"]).bottom_margin(1))
+                .column_spacing(0)
+                .widths(&[
+                    Constraint::Length(4),
+                    Constraint::Length(4),
+                    Constraint::Length(4),
+                    Constraint::Length(4),
+                    Constraint::Length(4),
+                    Constraint::Length(4),
+                    Constraint::Length(4),
+                    Constraint::Length(4),
+                    Constraint::Length(4),
+                ]);
 
             f.render_widget(table, self.board_area);
-            f.render_widget(Paragraph::new(self.white_initial.clone()).alignment(Alignment::Left), self.white_initial_area);
-            f.render_widget(Paragraph::new(self.black_initial.clone()).alignment(Alignment::Left), self.black_initial_area);
-            f.render_widget(Paragraph::new(self.white_time.clone()).alignment(Alignment::Right), self.white_time_area);
-            f.render_widget(Paragraph::new(self.black_time.clone()).alignment(Alignment::Right), self.black_time_area);
+            f.render_widget(
+                Paragraph::new(self.white_initial.clone()).alignment(Alignment::Left),
+                self.white_initial_area,
+            );
+            f.render_widget(
+                Paragraph::new(self.black_initial.clone()).alignment(Alignment::Left),
+                self.black_initial_area,
+            );
+            f.render_widget(
+                Paragraph::new(self.white_time.clone()).alignment(Alignment::Right),
+                self.white_time_area,
+            );
+            f.render_widget(
+                Paragraph::new(self.black_time.clone()).alignment(Alignment::Right),
+                self.black_time_area,
+            );
         });
     }
 
@@ -166,19 +214,25 @@ impl Tui {
             let mut col = 0;
             let mut num_empty = 0;
             while col < 8 {
-                if num_empty > 0 { 
-                    row_state.push(get_cell("".to_string(), get_cell_color(row, col), Color::White));
+                if num_empty > 0 {
+                    row_state.push(get_cell(
+                        "".to_string(),
+                        get_cell_color(row, col),
+                        Color::White,
+                    ));
                     num_empty -= 1;
                 } else {
                     let chr_option = it.next();
-                    if chr_option.is_none() { break; }
+                    if chr_option.is_none() {
+                        break;
+                    }
                     let chr = chr_option.unwrap();
 
                     if chr.is_ascii_digit() {
                         num_empty = chr.to_string().parse().unwrap();
                         continue;
                     }
-                    
+
                     let piece = convert_chr_to_piece(&chr);
                     let piece_color = get_player_color(&chr);
                     row_state.push(get_cell(piece, get_cell_color(row, col), piece_color));
@@ -186,33 +240,38 @@ impl Tui {
 
                 col += 1;
             }
-            
+
             board_state.push(Row::new(row_state).height(2));
         }
 
         board_state
     }
 
-    pub fn update_white_initial(&mut self, name: &str, rating: u64, title: &str) {
+    fn get_default_text() -> &'static str {
+        ""
+    }
+
+    pub fn update_white_initial(&mut self, name: &str, rating: i32, opt_title: Option<&str>) {
+        let title = opt_title.unwrap_or(Tui::get_default_text());
         self.white_initial = format!("{}:{} ({})", title, name, rating);
     }
 
-    pub fn update_black_initial(&mut self, name: &str, rating: u64, title: &str) {
+    pub fn update_black_initial(&mut self, name: &str, rating: i32, opt_title: Option<&str>) {
+        let title = opt_title.unwrap_or(Tui::get_default_text());
         self.black_initial = format!("{}:{} ({})", title, name, rating);
     }
 
-    pub fn update_white_time(&mut self, time: u64) {
+    pub fn update_white_time(&mut self, time: i32) {
         self.white_time = format!("Time:{}s", time);
-    } 
+    }
 
-    pub fn update_black_time(&mut self, time: u64) {
+    pub fn update_black_time(&mut self, time: i32) {
         self.black_time = format!("Time:{}s", time);
     }
 
     pub fn stop(&mut self) {
-        disable_raw_mode();
-        execute!(self.terminal.backend_mut(), LeaveAlternateScreen);
-        self.terminal.show_cursor();
+        disable_raw_mode().unwrap();
+        execute!(self.terminal.backend_mut(), LeaveAlternateScreen).unwrap();
+        self.terminal.show_cursor().unwrap();
     }
-
 }
