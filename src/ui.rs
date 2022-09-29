@@ -2,7 +2,7 @@ use std::io::{self, Stdout};
 
 use crossterm::{
     execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen, SetSize},
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use tui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use tui::style::{Color, Modifier, Style};
@@ -48,47 +48,6 @@ pub fn convert_chr_to_piece(chr: &char) -> String {
         'p' | 'P' => " ♟ ".to_string(),
         _ => " ".to_string(),
     }
-}
-
-pub fn generate_board(fen: &str) -> Vec<Row> {
-    let row_pieces: Vec<&str> = fen.trim().split('/').collect();
-
-    // Generate board state row-by-row
-    let mut board_state = vec![];
-    for row in 0..8 {
-        let mut it = row_pieces[row].chars();
-        let mut row_state = vec![Cell::from((row + 1).to_string())];
-
-        let mut col = 0;
-        let mut num_empty = 0;
-        while col < 8 {
-            if num_empty > 0 {
-                row_state.push(get_cell("".to_string(), get_cell_color(row, col), Color::White));
-                num_empty -= 1;
-            } else {
-                let chr_option = it.next();
-                if chr_option.is_none() {
-                    break;
-                }
-                let chr = chr_option.unwrap();
-
-                if chr.is_ascii_digit() {
-                    num_empty = chr.to_string().parse().unwrap();
-                    continue;
-                }
-
-                let piece = convert_chr_to_piece(&chr);
-                let piece_color = get_player_color(&chr);
-                row_state.push(get_cell(piece, get_cell_color(row, col), piece_color));
-            }
-
-            col += 1;
-        }
-
-        board_state.push(Row::new(row_state).height(2));
-    }
-
-    board_state
 }
 
 pub fn get_cell(content: String, cell_color: Color, piece_color: Color) -> Cell<'static> {
