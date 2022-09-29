@@ -1,13 +1,13 @@
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum Color {
     BLACK,
     WHITE,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct UserInfo {
     pub name: String,
     pub title: Option<String>,
@@ -25,13 +25,42 @@ pub struct Player {
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
+pub struct Participant {
+    pub white_player: Player,
+    pub black_player: Player,
+}
+
+fn choose_color<'de, D>(deserializer: D) -> Result<Participant, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let mut players: Vec<Player> = Deserialize::deserialize(deserializer)?;
+    if players[0].color == Color::BLACK {
+        Ok(Participant {
+            white_player: players.swap_remove(1),
+            black_player: players.swap_remove(0),
+        })
+    } else {
+        Ok(Participant {
+            black_player: players.swap_remove(1),
+            white_player: players.swap_remove(0),
+        })
+    }
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
 #[serde(tag = "t", content = "d")]
 pub enum FeedResponse {
     #[serde(alias = "featured")]
     Feature {
         id: String,
         orientation: Color,
-        players: Vec<Player>, // TODO: custom deserialize to split white & black player info to 2 vars
+
+        #[serde(deserialize_with = "choose_color")]
+        #[serde(alias = "players")]
+        players: Participant,
+
+        // players: Vec<Player>, // TODO: custom deserialize to split white & black player info to 2 vars
         fen: String,
     },
 
@@ -48,6 +77,7 @@ pub enum FeedResponse {
 mod tests {
     use bytes::Bytes;
 
+    use crate::state::Participant;
     use crate::state::Player;
     use crate::state::UserInfo;
 
@@ -83,8 +113,8 @@ mod tests {
             FeedResponse::Feature {
                 id: String::from("1n8qK1ar"),
                 orientation: Color::WHITE,
-                players: vec![
-                    Player {
+                players: Participant {
+                    white_player: Player {
                         color: Color::WHITE,
                         rating: 2965,
                         seconds: 60,
@@ -94,7 +124,7 @@ mod tests {
                             title: None,
                         }
                     },
-                    Player {
+                    black_player: Player {
                         color: Color::BLACK,
                         rating: 2945,
                         seconds: 60,
@@ -103,8 +133,8 @@ mod tests {
                             name: String::from("Player_06"),
                             title: Some(String::from("FM")),
                         }
-                    }
-                ],
+                    },
+                },
                 fen: String::from("r3rbk1/1b1q1pp1/1n2p3/2ppP1BP/1nP3N1/1P3NP1/5PB1/RQ2R1K1")
             }
         );

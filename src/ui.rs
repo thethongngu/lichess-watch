@@ -2,9 +2,7 @@ use std::io::{self, Stdout};
 
 use crossterm::{
     execute,
-    terminal::{
-        disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen, SetSize,
-    },
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen, SetSize},
 };
 use tui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use tui::style::{Color, Modifier, Style};
@@ -65,11 +63,7 @@ pub fn generate_board(fen: &str) -> Vec<Row> {
         let mut num_empty = 0;
         while col < 8 {
             if num_empty > 0 {
-                row_state.push(get_cell(
-                    "".to_string(),
-                    get_cell_color(row, col),
-                    Color::White,
-                ));
+                row_state.push(get_cell("".to_string(), get_cell_color(row, col), Color::White));
                 num_empty -= 1;
             } else {
                 let chr_option = it.next();
@@ -138,7 +132,7 @@ impl Tui {
 
         let player_info_layout = Layout::default()
             .direction(Direction::Horizontal)
-            .constraints([Constraint::Length(5), Constraint::Length(5)]);
+            .constraints([Constraint::Min(10), Constraint::Length(8)]);
 
         let white_info_block = player_info_layout.split(main_layout[0]);
         let black_info_block = player_info_layout.split(main_layout[4]);
@@ -215,11 +209,7 @@ impl Tui {
             let mut num_empty = 0;
             while col < 8 {
                 if num_empty > 0 {
-                    row_state.push(get_cell(
-                        "".to_string(),
-                        get_cell_color(row, col),
-                        Color::White,
-                    ));
+                    row_state.push(get_cell("".to_string(), get_cell_color(row, col), Color::White));
                     num_empty -= 1;
                 } else {
                     let chr_option = it.next();
