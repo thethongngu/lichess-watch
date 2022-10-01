@@ -36,16 +36,20 @@ where
 {
     let mut players: Vec<Player> = Deserialize::deserialize(deserializer)?;
     if players[0].color == Color::BLACK {
-        Ok(Participant {
-            white_player: players.swap_remove(1),
-            black_player: players.swap_remove(0),
-        })
+        Ok(Participant { white_player: players.swap_remove(1), black_player: players.swap_remove(0) })
     } else {
-        Ok(Participant {
-            black_player: players.swap_remove(1),
-            white_player: players.swap_remove(0),
-        })
+        Ok(Participant { black_player: players.swap_remove(1), white_player: players.swap_remove(0) })
     }
+}
+
+fn split_fen_only<'de, D>(deserializer: D) -> Result<String, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let mut res: String = Deserialize::deserialize(deserializer)?;
+    res.pop();
+    res.pop();
+    Ok(res)
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
@@ -60,17 +64,18 @@ pub enum FeedResponse {
         #[serde(alias = "players")]
         players: Participant,
 
-        // players: Vec<Player>, // TODO: custom deserialize to split white & black player info to 2 vars
         fen: String,
     },
 
     #[serde(alias = "fen")]
     Fen {
+        #[serde(deserialize_with = "split_fen_only")]
         fen: String,
+
         lm: String,
         wc: i32,
         bc: i32,
-    }, // TODO: custom deserialize for FeedResponse::Fen.fen to parse current color's turn
+    },
 }
 
 #[cfg(test)]
