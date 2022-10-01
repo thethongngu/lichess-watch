@@ -159,22 +159,21 @@ impl Tui {
     }
 
     pub fn generate_board(fen: &str) -> Vec<Row> {
-        let row_pieces: Vec<&str> = fen.trim().split('/').collect();
         let mut board_state = vec![];
 
         // Generate board state row-by-row
-        for row in 0..8 {
-            let mut it = row_pieces[row].chars();
-            let mut row_state = vec![Cell::from((row + 1).to_string())];
-
+        for (row_id, row) in fen.trim().split('/').enumerate() {
+            let mut row_state = vec![Cell::from((row_id + 1).to_string())];
             let mut col = 0;
             let mut num_empty = 0;
+            let mut char_iter = row.chars();
+
             while col < 8 {
                 if num_empty > 0 {
-                    row_state.push(get_cell("".to_string(), get_cell_color(row, col), Color::White));
+                    row_state.push(get_cell("".to_string(), get_cell_color(row_id, col), Color::White));
                     num_empty -= 1;
                 } else {
-                    let chr_option = it.next();
+                    let chr_option = char_iter.next();
                     if chr_option.is_none() {
                         break;
                     }
@@ -187,7 +186,7 @@ impl Tui {
 
                     let piece = convert_chr_to_piece(&chr);
                     let piece_color = get_player_color(&chr);
-                    row_state.push(get_cell(piece, get_cell_color(row, col), piece_color));
+                    row_state.push(get_cell(piece, get_cell_color(row_id, col), piece_color));
                 }
 
                 col += 1;
