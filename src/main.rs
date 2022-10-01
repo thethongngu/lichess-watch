@@ -40,7 +40,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
 
-        my_tui.render();
+        my_tui.render()?;
 
         // Ctrl + C to stop
         if poll(Duration::from_millis(100))? {

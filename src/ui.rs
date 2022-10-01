@@ -4,10 +4,13 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use tui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use tui::style::{Color, Modifier, Style};
 use tui::widgets::{Cell, Paragraph, Row, Table};
 use tui::{backend::CrosstermBackend, Terminal};
+use tui::{
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    terminal::CompletedFrame,
+};
 
 pub struct Tui {
     terminal: Terminal<CrosstermBackend<Stdout>>,
@@ -111,7 +114,7 @@ impl Tui {
         }
     }
 
-    pub fn render(&mut self) {
+    pub fn render(&mut self) -> Result<CompletedFrame<'_>, std::io::Error> {
         let board_state = Self::generate_board(&self.fen);
 
         self.terminal.draw(|f| {
@@ -148,7 +151,7 @@ impl Tui {
                 Paragraph::new(self.black_time.clone()).alignment(Alignment::Right),
                 self.black_time_area,
             );
-        });
+        })
     }
 
     pub fn update_board_fen(&mut self, fen: String) {
